@@ -1,1 +1,1 @@
-# Im-Coinfused
+# Crypto-Centric Autoregressive Transformer
