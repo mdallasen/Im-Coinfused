@@ -117,6 +117,6 @@ scraper = RedditScraper(
 df = scraper.get_top_threads_and_comments("cryptocurrency", post_limit=1000, comment_limit=3)
 print(df.head())
 # folder_path = os.path.expanduser(r"~/src/data")
-# file_path = os.path.join(folder_path, "top_crypto_threads.csv")
+# file_path = os.path.join(folder_path, "reddit_data.csv")
 # df.to_csv(file_path, index=False)
 # print(f"Data saved to {file_path}")
