@@ -10,10 +10,10 @@ class Preprocessor:
         self.wiki_path = self.data_dir / "wiki.csv"
         self.reddit_path = self.data_dir / "reddit.csv"
         self.nlp = spacy.load("en_core_web_sm")
-        self.combined_df = None
+        self.df = None
 
     def load_data(self): 
-        wiki_df = pd.read_csv(self.wiki_path)
+        wiki_df = pd.read_json(self.wiki_path)
         wiki_df['source'] = 'wiki'
         wiki_df.dropna(subset=["url"], inplace=True)
         wiki_df.rename(columns={'title': 'title', 'content': 'content'}, inplace=True)
@@ -44,7 +44,7 @@ class Preprocessor:
         self.df['entities'] = self.df['content'].apply(self.extract_entities)
         df_entities = self.df['entities'].apply(lambda x: pd.Series(x))
         df_entities.columns = [f"entity_{i+1}" for i in range(df_entities.shape[1])]
-        self.df = pd.concat([self.combined_df.drop(columns=['entities']), df_entities], axis=1)
+        self.df = pd.concat([self.df.drop(columns=['entities']), df_entities], axis=1)
 
     def generate_questions(self):
         model_name = "valhalla/t5-base-qg-hl"
@@ -53,7 +53,7 @@ class Preprocessor:
 
         qa_pairs = []
 
-        for idx, row in self.combined_df.iterrows():
+        for idx, row in self.df.iterrows():
             text = row['content']
             entities = self.extract_entities(text)
 
@@ -80,7 +80,7 @@ class Preprocessor:
         return pd.DataFrame(qa_pairs)
     
     def save(self, path):
-        self.combined_df.to_csv(path, index=False, encoding='utf-8')
+        self.df.to_csv(path, index=False, encoding='utf-8')
 
     def run(self, save_path="data/crypto_corpus.csv", qg_save_path="data/crypto_qa.csv"):
         self.load_data()
@@ -90,11 +90,8 @@ class Preprocessor:
         qa_df = self.generate_questions()
         qa_df.to_csv(qg_save_path, index=False, encoding='utf-8')
 
-        return self.combined_df, qa_df
+        return self.df, qa_df
     
 if __name__ == "__main__":
     preprocessor = Preprocessor()
-    combined_df, qa_df = preprocessor.run()
-    print("Data preprocessing and question generation completed.")
-    print(f"Combined DataFrame shape: {combined_df.shape}")
-    print(f"QA DataFrame shape: {qa_df.shape}")
+    df, qa_df = preprocessor.run()

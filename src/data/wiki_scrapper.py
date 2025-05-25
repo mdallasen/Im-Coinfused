@@ -15,16 +15,13 @@ class WikiScapper:
 
     def save_to_jsonl(self, filename):
         base_dir = Path(__file__).resolve().parent
-        data_dir = base_dir.parent / "data"
-        data_dir.mkdir(parents=True, exist_ok=True)
+        data_dir = base_dir.parent.parent / "data"
         filepath = data_dir / filename
         
         with open(filepath, 'w', encoding='utf-8') as f:
             for title, content in self.articles.items():
                 record = {"title": title, "content": content}
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        
-        print(f"Saved Wikipedia articles to {filepath}")
 
     @classmethod
     def extract(cls):
