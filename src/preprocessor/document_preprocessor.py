@@ -6,20 +6,29 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
 class Preprocessor:
     def __init__(self):
         base_dir = Path(__file__).resolve().parent
-        self.data_dir = base_dir.parent.parent / "data"  
+        self.data_dir = base_dir.parent.parent / "data"
         self.wiki_path = self.data_dir / "crypto_wiki_corpus.jsonl"
         self.nlp = spacy.load("en_core_web_sm")
         self.df = None
 
+        # Load summarization model
+        self.summarizer = pipeline(
+            "summarization",
+            model="facebook/bart-large-cnn"
+        )
+
+        # Load question generation model
         model_name = "valhalla/t5-base-qg-hl"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-        self.summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=0)
-
-        self.qg_pipeline = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+        self.qg_pipeline = pipeline(
+            "text2text-generation",
+            model=model,
+            tokenizer=tokenizer
+        )
 
     def load_data(self):
+        print(f"Loading data from {self.wiki_path}")
         wiki_df = pd.read_json(self.wiki_path, lines=True)
         wiki_df['source'] = 'wiki'
         self.df = wiki_df
@@ -32,12 +41,14 @@ class Preprocessor:
         # self.df = pd.concat([wiki_df, reddit_df], ignore_index=True)
 
     def normalize_text(self, text):
+        print(f"Normalizing text of length {len(text)} characters.")
         text = text.lower()
         doc = self.nlp(text)
         sentences = [sent.text.strip() for sent in doc.sents]
         return ' '.join(sentences)
     
     def extract_entities(self, text):
+        print(f"Extracting entities from text of length {len(text)} characters.")
         doc = self.nlp(text)
         entities = []
         for ent in doc.ents:
@@ -45,45 +56,46 @@ class Preprocessor:
                 entities.append(ent.text)
         return list(set(entities))
     
-    def chunk_text(self, text, max_words=150):
+    def chunk_text(self, text, max_words=100):
+        print(f"Chunking text of length {len(text.split())} into chunks of {max_words} words.")
         words = text.split()
-        chunks = []
-        for i in range(0, len(words), max_words):
-            chunk = " ".join(words[i:i+max_words])
-            chunks.append(chunk)
-        return chunks
+        print(f"Total words: {len(words)}")
+        return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
 
     def summarize_chunks(self, text):
         chunks = self.chunk_text(text)
         summaries = []
+        print(f"Number of chunks created: {len(chunks)}")
         for chunk in chunks:
             try:
+                print(f"Summarizing chunk of length {len(chunk.split())} words.")
                 summary = self.summarizer(chunk, max_length=50, min_length=10, do_sample=False)
                 summaries.append(summary[0]['summary_text'])
             except Exception as e:
                 print(f"Summarization error: {e}")
                 summaries.append(chunk)
-        combined_summary = " ".join(summaries)
-        return combined_summary
+        combined = " ".join(summaries)
+        try:
+            short_summary = self.summarizer(combined, max_length=60, min_length=15, do_sample=False)
+            print(f"Final summary length: {len(short_summary[0]['summary_text'].split())} words.")  
+            return short_summary[0]['summary_text']
+        except Exception as e:
+            print(f"Meta-summarization error: {e}")
+            return combined
 
     def generate_questions(self, text):
-        # Summarize the text with chunking
         summary = self.summarize_chunks(text)
-
-        # Truncate summary tokens to avoid exceeding model limit
-        tokens = self.qg_pipeline.tokenizer.tokenize(summary)
-        if len(tokens) > 200:
-            tokens = tokens[:200]
-            summary = self.qg_pipeline.tokenizer.convert_tokens_to_string(tokens)
-
-        # Generate questions from the summary
-        input_text = f"generate question: {summary}"
+        print(f"Generated summary: {summary}")
         try:
+            encoded = self.qg_pipeline.tokenizer.encode(summary, truncation=True, max_length=512)
+            truncated_summary = self.qg_pipeline.tokenizer.decode(encoded, skip_special_tokens=True)
+            input_text = f"generate question: {truncated_summary}"
             outputs = self.qg_pipeline(
                 input_text,
-                max_length=64,
+                max_new_tokens=64,
                 num_return_sequences=3,
-                truncation=True 
+                truncation=True,
+                return_full_text=False
             )
             return [out['generated_text'] for out in outputs]
         except Exception as e:
@@ -96,10 +108,11 @@ class Preprocessor:
 
         # Expand entities into separate columns
         df_entities = self.df['entities'].apply(lambda x: pd.Series(x))
-        df_entities.columns = [f"entity_{i+1}" for i in range(df_entities.shape[1])]
-        self.df = pd.concat([self.df.drop(columns=['entities']), df_entities], axis=1)
+        if not df_entities.empty:
+            df_entities.columns = [f"entity_{i + 1}" for i in range(df_entities.shape[1])]
+            self.df = pd.concat([self.df.drop(columns=['entities']), df_entities], axis=1)
 
-        # Use the new generate_questions method that summarizes + chunks
+        # Generate questions
         self.df['questions'] = self.df['content'].apply(self.generate_questions)
 
         return self.df
