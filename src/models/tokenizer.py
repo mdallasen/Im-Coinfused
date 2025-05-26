@@ -1,4 +1,4 @@
-from tensorflow import tf
+import tensorflow as tf
 
 class Tokenizer:
     def __init__(self, corpus, seq_len=20, max_tokens=10000):

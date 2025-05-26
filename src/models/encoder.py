@@ -14,8 +14,8 @@ class Encoder(keras.Model):
         self.pos_encoding = PositionalEncoding(window_size, hidden_size)  
         self.transformer_block = TransformerBlock(hidden_size, num_heads=num_heads, multiheaded=True)
 
-    def call(self, captions, encoder_output):
-        x = self.embedding(captions)
-        x = self.pos_encoding(x)  
-        out = self.transformer_block(x, encoder_output)
+    def call(self, tokens):
+        x = self.embedding(tokens)
+        x = self.pos_encoding(x)
+        out = self.transformer_block(x, None)
         return out

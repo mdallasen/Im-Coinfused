@@ -1,7 +1,7 @@
 import wikipedia
 import json
 from pathlib import Path
-from crypto_topics import topics
+from data.crypto_topics import topics
 
 class WikiScapper:
     def __init__(self, titles):
@@ -37,7 +37,3 @@ class WikiScapper:
         collector.fetch_articles()
         collector.save_to_jsonl("crypto_wiki_corpus.jsonl")
         print("Extraction process completed.")
-
-if __name__ == "__main__":
-    WikiScapper.extract()
-
