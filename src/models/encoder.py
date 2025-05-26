@@ -11,11 +11,11 @@ class Encoder(keras.Model):
         self.window_size = window_size
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, hidden_size)
-        self.pos_encoding = PositionalEncoding(window_size, hidden_size)  
-        self.transformer_block = TransformerBlock(hidden_size, num_heads=num_heads, multiheaded=True)
+        self.pos_encoding = PositionalEncoding(vocab_size, hidden_size, window_size)
+        self.block = TransformerBlock(hidden_size, multiheaded=True)
 
     def call(self, tokens):
         x = self.embedding(tokens)
         x = self.pos_encoding(x)
-        out = self.transformer_block(x, None)
+        out = self.block(x, None)
         return out

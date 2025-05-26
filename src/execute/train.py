@@ -152,8 +152,11 @@ class TrainRetriever:
         print("[INFO] Starting retriever training loop...")
 
         data_size = len(queries)
-        indices = tf.random.shuffle(tf.range(data_size))
+        if data_size < batch_size:
+            print("[WARNING] Not enough data to form one batch.")
+            return float('nan')
 
+        indices = tf.random.shuffle(tf.range(data_size))
         queries = tf.gather(queries, indices)
         pos_docs = tf.gather(pos_docs, indices)
         neg_docs = tf.gather(neg_docs, indices)
@@ -177,7 +180,7 @@ class TrainRetriever:
             self.optimizer.apply_gradients(zip(grads, self.encoder.trainable_variables))
             total_loss += float(loss)
 
-            avg_loss = total_loss / ((index + 1))
+            avg_loss = total_loss / (index + 1)
             print(f"[Retriever Train {index+1:03}/{num_batches}] Loss: {avg_loss:.4f}")
 
         print("[INFO] Retriever training complete.\n")

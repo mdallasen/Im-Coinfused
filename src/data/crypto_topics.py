@@ -1,4 +1,3 @@
 topics = [
-    "Cryptocurrency",
-    "Blockchain",
+    "Bitcoin"
 ]

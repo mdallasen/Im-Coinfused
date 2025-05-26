@@ -11,8 +11,8 @@ class Decoder(keras.Model):
         self.window_size = window_size
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, hidden_size)
-        self.pos_encoding = PositionalEncoding(window_size, hidden_size)  
-        self.transformer_block = TransformerBlock(hidden_size, num_heads=num_heads, multiheaded=True)
+        self.pos_encoding = PositionalEncoding(vocab_size, hidden_size, window_size)
+        self.block = TransformerBlock(hidden_size, multiheaded=True)
 
         self.classification = tf.keras.layers.Dense(vocab_size)
 
