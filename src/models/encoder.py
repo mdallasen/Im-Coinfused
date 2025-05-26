@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from models.transformer import TransformerBlock, PositionalEncoding
 
-@keras.saving.register_keras_serializable(package="MyLayers")
+@keras.saving.register_keras_serializable(package="encoder")
 class Encoder(keras.Model):
     def __init__(self, vocab_size, hidden_size, window_size, num_heads=8, **kwargs):
         super().__init__(**kwargs)

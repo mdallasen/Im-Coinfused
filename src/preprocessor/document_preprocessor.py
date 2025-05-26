@@ -129,7 +129,3 @@ class Preprocessor:
         df = self.process() 
         self.save(df, processed_save_path)
         return df
-
-if __name__ == "__main__":
-    preprocessor = Preprocessor()
-    df = preprocessor.run()
