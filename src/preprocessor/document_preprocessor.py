@@ -89,13 +89,14 @@ class Preprocessor:
             encoded = self.qg_pipeline.tokenizer.encode(summary, truncation=True, max_length=512)
             truncated_summary = self.qg_pipeline.tokenizer.decode(encoded, skip_special_tokens=True)
             input_text = f"generate question: {truncated_summary}"
+            
             outputs = self.qg_pipeline(
                 input_text,
                 max_new_tokens=64,
                 num_return_sequences=3,
-                truncation=True,
-                return_full_text=False
+                truncation=True            
             )
+
             questions = [out['generated_text'] for out in outputs]
             print(f"Generated {len(questions)} questions.")
             return questions

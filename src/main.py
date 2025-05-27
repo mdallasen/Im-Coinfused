@@ -14,17 +14,21 @@ def main():
     data = Preprocessor().run()
     print("[INFO] Data preprocessing completed.")
 
-    encoder_texts = data['content'].tolist()
-    decoder_texts = data['questions'].tolist()
+    encoder_texts = data['questions'].tolist()
+    decoder_texts = data['content'].tolist()
+
+    print(encoder_texts[:5])  
+    print(decoder_texts[:5]) 
 
     # Filter empty strings in combined corpus
     corpus = encoder_texts + decoder_texts
     corpus = [text for text in corpus if isinstance(text, str) and text.strip()]
+    print(corpus[:5]) 
     if not corpus:
         raise ValueError("Corpus is empty after filtering, cannot adapt tokenizer.")
 
     # Initialize tokenizer on both content and questions
-    tokenizer = Tokenizer(corpus, seq_len=20)
+    tokenizer = Tokenizer(corpus, seq_len=5)
 
     # Split into training and test sets
     split_idx = int(0.8 * len(encoder_texts))
@@ -55,16 +59,10 @@ def main():
     print(neg_enc_texts)
 
     print("[INFO] Starting retriever training...")
-    # Tokenize texts to convert to numeric tensors for retriever training
-    queries_tokens = tf.constant(tokenizer(train_enc_texts))
-    pos_docs_tokens = tf.constant(tokenizer(train_enc_texts))
-    neg_docs_tokens = tf.constant(tokenizer(neg_enc_texts))
-
     retriever.train(
-        queries=queries_tokens,
-        pos_docs=pos_docs_tokens,
-        neg_docs=neg_docs_tokens,
-        batch_size=32
+        queries=tf.constant(tokenizer(train_enc_texts)),
+        pos_docs=tf.constant(tokenizer(train_dec_texts)),
+        neg_docs=tf.constant(tokenizer(neg_enc_texts))
     )
 
     print("[INFO] Encoding training and test texts...")
